@@ -12,7 +12,7 @@
 
   <artifactId>uniproject</artifactId>
   <name>uniproject</name>
-  <url>http://www.example.com</url>
+  <url>https://github.com/filwalu/InzynieriaOprogramowania.git</url>
 
   <dependencyManagement>
     <dependencies>
