@@ -1,0 +1,151 @@
+# Ticketing System Development Guide
+
+## Development Environment 1
+
+```
+Apache Maven 3.6.3
+Maven home: /usr/share/maven
+Java version: 21.0.6, vendor: Ubuntu, runtime: /usr/lib/jvm/java-21-openjdk-amd64
+Default locale: en_US, platform encoding: UTF-8
+OS name: "linux", version: "5.15.0-134-generic", arch: "amd64", family: "unix"
+```
+
+## Maven Commands
+
+### Building the Project
+
+From the root directory:
+
+```bash
+# Clean and install the project
+mvn clean install
+
+# Skip tests during build
+mvn clean install -DskipTests
+```
+
+From the module directory:
+
+```bash
+# Build the specific module
+cd uniproject
+mvn clean install
+```
+
+### Running the Application
+
+```bash
+# Run using Spring Boot Maven plugin
+mvn spring-boot:run
+
+# Run with specific profile
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+### Testing
+
+```bash
+# Run all tests
+mvn test
+
+# Run specific test class
+mvn test -Dtest=TicketServiceTest
+
+# Run with test coverage report
+mvn test jacoco:report
+```
+
+### Dependency Management
+
+```bash
+# Show dependency tree
+mvn dependency:tree
+
+# Check for dependency updates
+mvn versions:display-dependency-updates
+
+# Clean local repository
+mvn dependency:purge-local-repository
+```
+
+### Database Migration
+
+```bash
+# Run Flyway migration manually
+mvn flyway:migrate
+
+# Clean database and re-run migrations
+mvn flyway:clean flyway:migrate
+```
+
+### Packaging
+
+```bash
+# Package as JAR
+mvn package
+
+# Package as executable JAR with dependencies
+mvn package spring-boot:repackage
+```
+
+### Generate Documentation
+
+```bash
+# Generate JavaDoc
+mvn javadoc:javadoc
+
+# Generate site documentation
+mvn site
+```
+
+## Database Configuration
+
+The application is configured to use MariaDB. Make sure your database is running before starting the application.
+
+Default connection settings in `application.properties`:
+
+```properties
+spring.datasource.url=jdbc:mariadb://localhost:3306/ticketing_system
+spring.datasource.username=root
+spring.datasource.password=password
+```
+
+## API Documentation
+
+After starting the application, Swagger UI is available at:
+
+```
+http://localhost:8080/api/swagger-ui.html
+```
+
+## Logging
+
+The application uses Log4j2 for logging. Configuration can be found in `src/main/resources/log4j2.xml`.
+
+## Common Issues and Solutions
+
+### Maven Wrapper
+
+If Maven is not installed on your system, you can use Maven Wrapper:
+
+```bash
+# Using Maven Wrapper
+./mvnw clean install
+```
+
+### Java Version Mismatch
+
+If you encounter Java version issues, ensure your JAVA_HOME is set correctly:
+
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+```
+
+### Port Already in Use
+
+If the application fails to start due to port conflict:
+
+```bash
+# Run on a different port
+mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Dserver.port=8081"
+```
