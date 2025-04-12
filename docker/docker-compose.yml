@@ -1,0 +1,6 @@
+services:
+  db:
+    image: mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: essapassword
