@@ -31,6 +31,9 @@ public class User {
     @JoinColumn(name = "created_by")
     private User createdBy;
 
+    @Column(name = "username", nullable = false)
+    private String username;
+    
     @Column(name = "firstname", nullable = false)
     private String firstname;
 
