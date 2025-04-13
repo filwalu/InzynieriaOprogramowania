@@ -17,6 +17,6 @@ CREATE TABLE IF NOT EXISTS roles(
     /*TODO*/
 )
 
-CREATE TABLE IF NOT EXISTS role_permissions(
+CREATE TABLE IF NOT EXISTS permissions(
     /*TODO*/
 )
