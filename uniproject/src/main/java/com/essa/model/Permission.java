@@ -20,4 +20,8 @@ public class Permission {
     
     @Column(length = 500)
     private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
 }
