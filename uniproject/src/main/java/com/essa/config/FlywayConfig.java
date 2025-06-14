@@ -53,7 +53,7 @@ public class FlywayConfig {
 
         @Override
         @Transactional
-        public void onApplicationEvent(ContextRefreshedEvent event) {
+        public void onApplicationEvent(@org.springframework.lang.NonNull ContextRefreshedEvent event) {
             if (alreadyInitialized) {
                 return;
             }
