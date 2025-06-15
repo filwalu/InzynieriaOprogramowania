@@ -2,6 +2,7 @@ package com.essa.controller;
 
 import com.essa.model.User;
 import com.essa.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "Admin Users", description = "ADMIN operations on users")
 @RestController
 @RequestMapping("/admin/users")
 public class AdminUserController {

@@ -7,12 +7,14 @@ import com.essa.model.TicketStatus;
 import com.essa.model.User;
 import com.essa.service.TicketService;
 import com.essa.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Tag(name = "Tickets", description = "Ticket operations")
 @RestController
 @RequestMapping("/tickets")
 public class TicketController {
@@ -20,7 +22,6 @@ public class TicketController {
     private final TicketService ticketService;
     private final UserService userService;
 
-    @Autowired
     public TicketController(TicketService ticketService, UserService userService) {
         this.ticketService = ticketService;
         this.userService = userService;

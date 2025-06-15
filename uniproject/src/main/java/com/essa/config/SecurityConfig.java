@@ -38,8 +38,17 @@ public class SecurityConfig {
         http
             .csrf().disable()
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers(
+                    "/auth/**",
+                    "/swagger-ui/**",
+                    "/api-docs",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**",
+                    "/v3/api-docs.yaml",
+                    "/swagger-ui/favicon-32x32.png",
+                    "/api-docs/swagger-config"
+                ).permitAll()
+                .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
