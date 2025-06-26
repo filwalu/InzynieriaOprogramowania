@@ -32,11 +32,13 @@ public class Ticket {
     @Enumerated(EnumType.STRING)
     private TicketPriority priority = TicketPriority.MEDIUM;
 
-    @Column(name = "created_by")
-    private String createdBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
 
-    @Column(name = "assigned_to")
-    private String assignedTo;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_to")
+    private User assignedTo;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

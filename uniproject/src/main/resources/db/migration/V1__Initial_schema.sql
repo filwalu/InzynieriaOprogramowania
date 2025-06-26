@@ -1,0 +1,44 @@
+CREATE TABLE IF NOT EXISTS roles (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS permissions (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    permission VARCHAR(255) NOT NULL UNIQUE,
+    description VARCHAR(500),
+    role_id BIGINT NOT NULL,
+    CONSTRAINT fk_permission_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by BIGINT,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    firstname VARCHAR(255) NOT NULL,
+    lastname VARCHAR(200),
+    email VARCHAR(200) UNIQUE,
+    role_id BIGINT NOT NULL,
+    CONSTRAINT fk_user_role FOREIGN KEY (role_id) REFERENCES roles(id),
+    CONSTRAINT fk_user_created_by FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS tickets (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) NOT NULL,
+    priority VARCHAR(50) NOT NULL,
+    created_by BIGINT,
+    assigned_to BIGINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ticket_created_by FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT fk_ticket_assigned_to FOREIGN KEY (assigned_to) REFERENCES users(id)
+);
+
+INSERT INTO roles (name) VALUES ('ADMIN');
+INSERT INTO roles (name) VALUES ('USER');
