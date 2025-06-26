@@ -1,18 +1,18 @@
 package com.essa.controller;
 
+import com.essa.dto.TicketCreateDTO;
 import com.essa.dto.TicketDTO;
+import com.essa.dto.TicketUpdateDTO;
+import com.essa.mapper.TicketMapper;
 import com.essa.model.Ticket;
-import com.essa.model.TicketPriority;
-import com.essa.model.TicketStatus;
 import com.essa.model.User;
 import com.essa.service.TicketService;
 import com.essa.service.UserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Tag(name = "Tickets", description = "Ticket operations")
 @RestController
@@ -21,78 +21,34 @@ public class TicketController {
 
     private final TicketService ticketService;
     private final UserService userService;
+    private final TicketMapper ticketMapper;
 
-    public TicketController(TicketService ticketService, UserService userService) {
+    public TicketController(TicketService ticketService, UserService userService, TicketMapper ticketMapper) {
         this.ticketService = ticketService;
         this.userService = userService;
+        this.ticketMapper = ticketMapper;
     }
 
     @GetMapping
     public List<TicketDTO> getAllTickets() {
         return ticketService.findAll().stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+                .map(ticketMapper::toDTO)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public TicketDTO getTicket(@PathVariable Long id) {
-        return toDTO(ticketService.findById(id));
+    public ResponseEntity<TicketDTO> getTicket(@PathVariable("id") Long id) {
+        Ticket ticket = ticketService.findById(id);
+        if (ticket == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(ticketMapper.toDTO(ticket));
     }
 
     @PostMapping
-    public TicketDTO createTicket(@RequestBody TicketDTO dto) {
-        Ticket ticket = fromDTO(dto);
-        return toDTO(ticketService.create(ticket));
-    }
+    public ResponseEntity<TicketDTO> createTicket(@RequestBody TicketCreateDTO dto) {
+        Ticket ticket = ticketMapper.toEntity(dto);
 
-    @PutMapping("/{id}")
-    public TicketDTO updateTicket(@PathVariable Long id, @RequestBody TicketDTO dto) {
-        Ticket ticket = fromDTO(dto);
-        ticket.setId(id);
-        return toDTO(ticketService.update(ticket));
-    }
-
-    @DeleteMapping("/{id}")
-    public void deleteTicket(@PathVariable Long id) {
-        ticketService.delete(id);
-    }
-
-    @PostMapping("/{id}/assign/{userId}")
-    public TicketDTO assignTicket(@PathVariable Long id, @PathVariable Long userId) {
-        return toDTO(ticketService.assignToUser(id, userId));
-    }
-
-    @PostMapping("/{id}/status")
-    public TicketDTO changeStatus(@PathVariable Long id, @RequestParam TicketStatus status) {
-        return toDTO(ticketService.changeStatus(id, status));
-    }
-
-    @PostMapping("/{id}/priority")
-    public TicketDTO changePriority(@PathVariable Long id, @RequestParam TicketPriority priority) {
-        return toDTO(ticketService.changePriority(id, priority));
-    }
-
-    // --- Mapping DTO <-> Entity ---
-
-    private TicketDTO toDTO(Ticket ticket) {
-        TicketDTO dto = new TicketDTO();
-        dto.setId(ticket.getId());
-        dto.setTitle(ticket.getTitle());
-        dto.setDescription(ticket.getDescription());
-        dto.setStatus(ticket.getStatus());
-        dto.setPriority(ticket.getPriority());
-        dto.setCreatedById(ticket.getCreatedBy() != null ? ticket.getCreatedBy().getId() : null);
-        dto.setAssignedToId(ticket.getAssignedTo() != null ? ticket.getAssignedTo().getId() : null);
-        return dto;
-    }
-
-    private Ticket fromDTO(TicketDTO dto) {
-        Ticket ticket = new Ticket();
-        ticket.setId(dto.getId());
-        ticket.setTitle(dto.getTitle());
-        ticket.setDescription(dto.getDescription());
-        ticket.setStatus(dto.getStatus());
-        ticket.setPriority(dto.getPriority());
         if (dto.getCreatedById() != null) {
             User createdBy = userService.findById(dto.getCreatedById());
             ticket.setCreatedBy(createdBy);
@@ -101,6 +57,62 @@ public class TicketController {
             User assignedTo = userService.findById(dto.getAssignedToId());
             ticket.setAssignedTo(assignedTo);
         }
-        return ticket;
+
+        Ticket saved = ticketService.create(ticket);
+        return ResponseEntity.ok(ticketMapper.toDTO(saved));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<TicketDTO> updateTicket(@PathVariable("id") Long id, @RequestBody TicketUpdateDTO dto) {
+        Ticket ticket = ticketService.findById(id);
+        if (ticket == null) {
+            return ResponseEntity.notFound().build();
+        }
+        ticketMapper.updateEntityFromDto(dto, ticket);
+
+        if (dto.getAssignedToId() != null) {
+            User assignedTo = userService.findById(dto.getAssignedToId());
+            ticket.setAssignedTo(assignedTo);
+        }
+
+        Ticket updated = ticketService.update(ticket);
+        return ResponseEntity.ok(ticketMapper.toDTO(updated));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTicket(@PathVariable("id") Long id) {
+        Ticket ticket = ticketService.findById(id);
+        if (ticket == null) {
+            return ResponseEntity.notFound().build();
+        }
+        ticketService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/assign/{userId}")
+    public ResponseEntity<TicketDTO> assignTicket(@PathVariable("id") Long id, @PathVariable("userId") Long userId) {
+        Ticket ticket = ticketService.assignToUser(id, userId);
+        if (ticket == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(ticketMapper.toDTO(ticket));
+    }
+
+    @PostMapping("/{id}/status")
+    public ResponseEntity<TicketDTO> changeStatus(@PathVariable("id") Long id, @RequestParam("status") String status) {
+        Ticket ticket = ticketService.changeStatus(id, com.essa.model.TicketStatus.valueOf(status));
+        if (ticket == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(ticketMapper.toDTO(ticket));
+    }
+
+    @PostMapping("/{id}/priority")
+    public ResponseEntity<TicketDTO> changePriority(@PathVariable("id") Long id, @RequestParam("priority") String priority) {
+        Ticket ticket = ticketService.changePriority(id, com.essa.model.TicketPriority.valueOf(priority));
+        if (ticket == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(ticketMapper.toDTO(ticket));
     }
 }

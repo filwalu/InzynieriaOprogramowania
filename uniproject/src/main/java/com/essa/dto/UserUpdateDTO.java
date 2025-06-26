@@ -3,9 +3,8 @@ package com.essa.dto;
 import lombok.Data;
 
 @Data
-public class UserDTO {
-    private Long id;
-    private String username;
+public class UserUpdateDTO {
+    private String password;
     private String firstname;
     private String lastname;
     private String email;
