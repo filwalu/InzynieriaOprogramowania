@@ -26,10 +26,15 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
         Collection<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName().toUpperCase()));
         
-        user.getRole().getRolePermissions().forEach(rp -> 
-            authorities.add(new SimpleGrantedAuthority(rp.getPermission())));
+        if (user.getRole() != null) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName().toUpperCase()));
+            
+            if (user.getRole().getRolePermissions() != null) {
+                user.getRole().getRolePermissions().forEach(rp -> 
+                    authorities.add(new SimpleGrantedAuthority(rp.getPermission())));
+            }
+        }
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
