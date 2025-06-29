@@ -7,11 +7,14 @@ import com.essa.model.User;
 import com.essa.repository.TicketRepository;
 import com.essa.repository.UserRepository;
 import com.essa.service.TicketService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.essa.util.EmailMessageBuilder;
+import com.essa.util.FormatValidator;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 @Service
 public class TicketServiceImpl implements TicketService {
@@ -19,10 +22,14 @@ public class TicketServiceImpl implements TicketService {
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
 
-    @Autowired
     public TicketServiceImpl(TicketRepository ticketRepository, UserRepository userRepository) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
+    }
+
+    public boolean validateTicketData(String email, String username) {
+        FormatValidator validator = FormatValidator.getInstance();
+        return validator.isValidEmail(email) && validator.isValidUsername(username);
     }
 
     @Override
@@ -51,10 +58,34 @@ public class TicketServiceImpl implements TicketService {
         return ticketRepository.findByAssignedTo(assignedTo);
     }
 
+    // should be moved
+    public String createAssignmentEmail(String userEmail, String ticketTitle, String assigneeName) {
+        return new EmailMessageBuilder()
+                .to(userEmail)
+                .ticketAssigned(ticketTitle, assigneeName)
+                .priority("high")
+                .build();
+    }
+
     @Override
     @Transactional
     public Ticket create(Ticket ticket) {
         ticket.setId(null);
+
+        if (ticket.getCreatedBy() != null) {
+            String email = ticket.getCreatedBy().getEmail();
+            String username = ticket.getCreatedBy().getUsername();
+
+            boolean isValid = validateTicketData(email, username);
+            Logger.getLogger(TicketServiceImpl.class.getName())
+                    .info("Ticket data validation for email: " + email + ", username: " + username + " - Result: " + isValid);
+            if (!isValid) {
+                throw new RuntimeException("Invalid ticket data: email or username format is incorrect.");
+            }
+        } else {
+            Logger.getLogger(TicketServiceImpl.class.getName())
+                    .warning("Ticket created without a user. This may lead to issues with ticket assignment.");
+        }
         return ticketRepository.save(ticket);
     }
 
@@ -83,6 +114,19 @@ public class TicketServiceImpl implements TicketService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         ticket.setAssignedTo(user);
+        
+        if (ticket.getPriority() == TicketPriority.HIGH || ticket.getPriority() == TicketPriority.CRITICAL) {
+            String email = createAssignmentEmail(
+                user.getEmail(),
+                ticket.getTitle(),
+                user.getUsername()
+            );
+            // Here service would send the email
+            Logger.getLogger(TicketServiceImpl.class.getName())
+                    .info("Sending assignment email: " + email);
+        } else {
+            Logger.getLogger("Email not sent for low priority ticket: " + ticket.getTitle() + ticket.getPriority());
+        }
         return ticketRepository.save(ticket);
     }
 
