@@ -1,5 +1,5 @@
 package com.essa.util;
-
+//builder class for creating email messages
 public class EmailMessageBuilder {
     private String to;
     private String subject;

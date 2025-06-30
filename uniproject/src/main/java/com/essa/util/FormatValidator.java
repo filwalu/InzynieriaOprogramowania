@@ -1,7 +1,7 @@
 package com.essa.util;
 
 import java.util.regex.Pattern;
-
+//singleton class for validating email and username formats
 public class FormatValidator {
     private static FormatValidator instance;
     private final Pattern emailPattern;
