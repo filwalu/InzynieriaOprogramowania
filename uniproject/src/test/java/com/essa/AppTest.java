@@ -7,8 +7,10 @@ import com.essa.model.User;
 import com.essa.repository.RoleRepository;
 import com.essa.repository.UserRepository;
 import com.essa.security.JwtUtil;
+import com.essa.service.TicketService;
 import com.essa.service.UserService;
 import com.essa.service.impl.UserServiceImpl;
+import com.essa.util.observer.UserObserver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,12 +26,16 @@ public class AppTest {
     private UserRepository userRepository;
     private RoleRepository roleRepository;
     private UserService userService;
+    private TicketService ticketService;
+    private UserObserver userObserver;
 
     @BeforeEach
     public void setup() {
         userRepository = mock(UserRepository.class);
         roleRepository = mock(RoleRepository.class);
-        userService = new UserServiceImpl(userRepository);
+        ticketService = mock(TicketService.class);
+        userObserver = mock(UserObserver.class);
+        userService = new UserServiceImpl(userRepository, ticketService);
     }
 
     @Test

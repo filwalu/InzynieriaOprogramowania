@@ -1,4 +1,4 @@
-package com.essa.util;
+package com.essa.util.singleton;
 
 import java.util.regex.Pattern;
 //singleton class for validating email and username formats

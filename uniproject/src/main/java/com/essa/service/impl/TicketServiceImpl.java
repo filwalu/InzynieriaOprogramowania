@@ -7,8 +7,9 @@ import com.essa.model.User;
 import com.essa.repository.TicketRepository;
 import com.essa.repository.UserRepository;
 import com.essa.service.TicketService;
-import com.essa.util.EmailMessageBuilder;
-import com.essa.util.FormatValidator;
+import com.essa.util.builder.EmailMessageBuilder;
+import com.essa.util.facade.TicketOperationsFacade;
+import com.essa.util.singleton.FormatValidator;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +22,16 @@ public class TicketServiceImpl implements TicketService {
 
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final TicketOperationsFacade ticketOperationsFacade;
 
-    public TicketServiceImpl(TicketRepository ticketRepository, UserRepository userRepository) {
+    public TicketServiceImpl(
+            TicketRepository ticketRepository,
+            UserRepository userRepository,
+            TicketOperationsFacade ticketOperationsFacade
+    ) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
+        this.ticketOperationsFacade = ticketOperationsFacade;
     }
 
     public boolean validateTicketData(String email, String username) {
@@ -86,7 +93,13 @@ public class TicketServiceImpl implements TicketService {
             Logger.getLogger(TicketServiceImpl.class.getName())
                     .warning("Ticket created without a user. This may lead to issues with ticket assignment.");
         }
-        return ticketRepository.save(ticket);
+
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        if (savedTicket.getCreatedBy() != null) {
+            ticketOperationsFacade.generateTicketSummary(savedTicket.getCreatedBy().getId());
+        }
+        return savedTicket;
     }
 
     @Override
