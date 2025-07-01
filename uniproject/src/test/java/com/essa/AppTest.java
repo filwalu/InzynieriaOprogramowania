@@ -35,7 +35,7 @@ public class AppTest {
         roleRepository = mock(RoleRepository.class);
         ticketService = mock(TicketService.class);
         userObserver = mock(UserObserver.class);
-        userService = new UserServiceImpl(userRepository, ticketService);
+        userService = new UserServiceImpl(userRepository);
     }
 
     @Test

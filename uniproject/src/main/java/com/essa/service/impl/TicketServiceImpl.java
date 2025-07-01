@@ -13,6 +13,7 @@ import com.essa.util.singleton.FormatValidator;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.annotation.Lazy;
 
 import java.util.List;
 import java.util.logging.Logger;
@@ -27,7 +28,7 @@ public class TicketServiceImpl implements TicketService {
     public TicketServiceImpl(
             TicketRepository ticketRepository,
             UserRepository userRepository,
-            TicketOperationsFacade ticketOperationsFacade
+            @Lazy TicketOperationsFacade ticketOperationsFacade
     ) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;

@@ -4,6 +4,8 @@ import com.essa.model.TicketPriority;
 import com.essa.model.User;
 import com.essa.service.TicketService;
 import com.essa.service.UserService;
+
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +15,7 @@ import java.util.logging.Logger;
 public class TicketOperationsFacade {
     
     @Autowired
+    @Lazy 
     private TicketService ticketService;
     
     @Autowired
