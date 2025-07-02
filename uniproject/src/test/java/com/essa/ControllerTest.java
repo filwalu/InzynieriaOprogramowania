@@ -5,7 +5,9 @@ import com.essa.controller.AuthController;
 import com.essa.controller.TicketController;
 import com.essa.dto.*;
 import com.essa.mapper.TicketMapper;
+import com.essa.mapper.UserMapper;
 import com.essa.model.*;
+import com.essa.repository.RoleRepository;
 import com.essa.security.JwtUtil;
 import com.essa.service.TicketService;
 import com.essa.service.UserService;
@@ -21,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,7 +34,9 @@ public class ControllerTest {
     private TicketService ticketService;
     private UserService userService;
     private TicketMapper ticketMapper;
+    private UserMapper userMapper;
     private PasswordEncoder passwordEncoder;
+    private RoleRepository roleRepository;
     private AuthenticationManager authenticationManager;
     private UserDetailsService userDetailsService;
     private JwtUtil jwtUtil;
@@ -45,13 +50,15 @@ public class ControllerTest {
         ticketService = mock(TicketService.class);
         userService = mock(UserService.class);
         ticketMapper = mock(TicketMapper.class);
+        userMapper = mock(UserMapper.class);
         passwordEncoder = mock(PasswordEncoder.class);
+        roleRepository = mock(RoleRepository.class);
         authenticationManager = mock(AuthenticationManager.class);
         userDetailsService = mock(UserDetailsService.class);
         jwtUtil = mock(JwtUtil.class);
 
         ticketController = new TicketController(ticketService, userService, ticketMapper);
-        adminUserController = new AdminUserController(userService, passwordEncoder);
+        adminUserController = new AdminUserController(userService, userMapper, passwordEncoder, roleRepository);
         authController = new AuthController(authenticationManager, userDetailsService, jwtUtil);
     }
 
@@ -166,21 +173,35 @@ public class ControllerTest {
         verify(ticketService).delete(1L);
     }
 
-    // --- AdminUserController Tests ---
+    // --- AdminUserController Tests (POPRAWIONE) ---
     @SuppressWarnings("null")
     @Test
     public void testGetAllUsers() {
         User user1 = new User();
         user1.setId(1L);
         user1.setUsername("user1");
+        user1.setEmail("user1@example.com");
 
         User user2 = new User();
         user2.setId(2L);
         user2.setUsername("user2");
+        user2.setEmail("user2@example.com");
+
+        UserDTO dto1 = new UserDTO();
+        dto1.setId(1L);
+        dto1.setUsername("user1");
+        dto1.setEmail("user1@example.com");
+
+        UserDTO dto2 = new UserDTO();
+        dto2.setId(2L);
+        dto2.setUsername("user2");
+        dto2.setEmail("user2@example.com");
 
         when(userService.findAll()).thenReturn(Arrays.asList(user1, user2));
+        when(userMapper.toDTO(user1)).thenReturn(dto1);
+        when(userMapper.toDTO(user2)).thenReturn(dto2);
 
-        ResponseEntity<List<User>> response = adminUserController.getAllUsers();
+        ResponseEntity<List<UserDTO>> response = adminUserController.getAllUsers();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -195,10 +216,17 @@ public class ControllerTest {
         User user = new User();
         user.setId(1L);
         user.setUsername("testuser");
+        user.setEmail("test@example.com");
+
+        UserDTO dto = new UserDTO();
+        dto.setId(1L);
+        dto.setUsername("testuser");
+        dto.setEmail("test@example.com");
 
         when(userService.findById(1L)).thenReturn(user);
+        when(userMapper.toDTO(user)).thenReturn(dto);
 
-        ResponseEntity<User> response = adminUserController.getUserById(1L);
+        ResponseEntity<UserDTO> response = adminUserController.getUserById(1L);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -208,62 +236,165 @@ public class ControllerTest {
     @SuppressWarnings("null")
     @Test
     public void testCreateUser() {
-        User mockUser = mock(User.class);
-        when(mockUser.getUsername()).thenReturn("newuser");
-        when(mockUser.getPassword()).thenReturn("password");
+        UserCreateDTO createDTO = new UserCreateDTO();
+        createDTO.setUsername("newuser");
+        createDTO.setPassword("password123");
+        createDTO.setFirstname("New");
+        createDTO.setLastname("User");
+        createDTO.setEmail("newuser@example.com");
+        createDTO.setRoleId(1L);
+
+        User mappedUser = new User();
+        mappedUser.setUsername("newuser");
+        mappedUser.setFirstname("New");
+        mappedUser.setLastname("User");
+        mappedUser.setEmail("newuser@example.com");
+
+        Role userRole = new Role();
+        userRole.setId(1L);
+        userRole.setName("USER");
 
         User savedUser = new User();
         savedUser.setId(1L);
         savedUser.setUsername("newuser");
+        savedUser.setPassword("encodedPassword");
+        savedUser.setRole(userRole);
 
-        when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
-        when(userService.create(mockUser)).thenReturn(savedUser);
+        UserDTO responseDTO = new UserDTO();
+        responseDTO.setId(1L);
+        responseDTO.setUsername("newuser");
+        responseDTO.setRoleId(1L);
 
-        ResponseEntity<User> response = adminUserController.createUser(mockUser);
+        when(userMapper.toEntity(createDTO)).thenReturn(mappedUser);
+        when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
+        when(roleRepository.findById(1L)).thenReturn(Optional.of(userRole));
+        when(userService.create(any(User.class))).thenReturn(savedUser);
+        when(userMapper.toDTO(savedUser)).thenReturn(responseDTO);
+
+        ResponseEntity<UserDTO> response = adminUserController.createUser(createDTO);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("newuser", response.getBody().getUsername());
-        verify(mockUser).setPassword("encodedPassword");
+        assertEquals(1L, response.getBody().getRoleId());
     }
 
     @SuppressWarnings("null")
     @Test
     public void testUpdateUser() {
-        User userToUpdate = mock(User.class);
-        when(userToUpdate.getId()).thenReturn(1L);
-        when(userToUpdate.getUsername()).thenReturn("updateduser");
-        when(userToUpdate.getPassword()).thenReturn("newpassword");
-        userToUpdate.setUsername("updateduser");
-        userToUpdate.setPassword("newpassword");
+        UserUpdateDTO updateDTO = new UserUpdateDTO();
+        updateDTO.setFirstname("Updated");
+        updateDTO.setLastname("User");
+        updateDTO.setEmail("updated@example.com");
+        updateDTO.setPassword("newpassword");
+        updateDTO.setRoleId(2L);
 
-        User updatedUser = mock(User.class);
-        when(updatedUser.getId()).thenReturn(1L);
-        when(updatedUser.getUsername()).thenReturn("updateduser");
-        when(updatedUser.getPassword()).thenReturn("encodedNewPassword");
+        User existingUser = new User();
+        existingUser.setId(1L);
+        existingUser.setUsername("existinguser");
+        existingUser.setFirstname("Old");
+        existingUser.setLastname("User");
+
+        Role newRole = new Role();
+        newRole.setId(2L);
+        newRole.setName("ADMIN");
+
+        User updatedUser = new User();
         updatedUser.setId(1L);
-        updatedUser.setUsername("updateduser");
+        updatedUser.setUsername("existinguser");
+        updatedUser.setFirstname("Updated");
+        updatedUser.setLastname("User");
+        updatedUser.setEmail("updated@example.com");
+        updatedUser.setRole(newRole);
 
+        UserDTO responseDTO = new UserDTO();
+        responseDTO.setId(1L);
+        responseDTO.setUsername("existinguser");
+        responseDTO.setFirstname("Updated");
+        responseDTO.setLastname("User");
+        responseDTO.setEmail("updated@example.com");
+        responseDTO.setRoleId(2L);
+
+        when(userService.findById(1L)).thenReturn(existingUser);
         when(passwordEncoder.encode("newpassword")).thenReturn("encodedNewPassword");
-        when(userService.update(userToUpdate)).thenReturn(updatedUser);
+        when(roleRepository.findById(2L)).thenReturn(Optional.of(newRole));
+        when(userService.update(existingUser)).thenReturn(updatedUser);
+        when(userMapper.toDTO(updatedUser)).thenReturn(responseDTO);
 
-        ResponseEntity<User> response = adminUserController.updateUser(1L, userToUpdate);
+        ResponseEntity<UserDTO> response = adminUserController.updateUser(1L, updateDTO);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("updateduser", response.getBody().getUsername());
-        assertEquals(1L, userToUpdate.getId());
-        verify(userToUpdate).setPassword("encodedNewPassword");
+        assertEquals("existinguser", response.getBody().getUsername());
+        assertEquals("Updated", response.getBody().getFirstname());
+        assertEquals(2L, response.getBody().getRoleId());
+        verify(userMapper).updateEntityFromDto(updateDTO, existingUser);
     }
 
     @Test
     public void testDeleteUser() {
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("userToDelete");
+
+        when(userService.findById(1L)).thenReturn(user);
         doNothing().when(userService).delete(1L);
 
         ResponseEntity<Void> response = adminUserController.deleteUser(1L);
 
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         verify(userService).delete(1L);
+    }
+
+    @Test
+    public void testGetUserById_NotFound() {
+        when(userService.findById(999L)).thenReturn(null);
+
+        ResponseEntity<UserDTO> response = adminUserController.getUserById(999L);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    public void testCreateUser_WithDefaultRole() {
+        UserCreateDTO createDTO = new UserCreateDTO();
+        createDTO.setUsername("newuser");
+        createDTO.setPassword("password123");
+        createDTO.setFirstname("New");
+        createDTO.setLastname("User");
+        createDTO.setEmail("newuser@example.com");
+        // Brak roleId - powinno użyć domyślnej roli USER
+
+        User mappedUser = new User();
+        mappedUser.setUsername("newuser");
+
+        Role defaultRole = new Role();
+        defaultRole.setId(1L);
+        defaultRole.setName("USER");
+
+        User savedUser = new User();
+        savedUser.setId(1L);
+        savedUser.setUsername("newuser");
+        savedUser.setRole(defaultRole);
+
+        UserDTO responseDTO = new UserDTO();
+        responseDTO.setId(1L);
+        responseDTO.setUsername("newuser");
+        responseDTO.setRoleId(1L);
+
+        when(userMapper.toEntity(createDTO)).thenReturn(mappedUser);
+        when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
+        when(roleRepository.findByName("USER")).thenReturn(Optional.of(defaultRole));
+        when(userService.create(any(User.class))).thenReturn(savedUser);
+        when(userMapper.toDTO(savedUser)).thenReturn(responseDTO);
+
+        ResponseEntity<UserDTO> response = adminUserController.createUser(createDTO);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody());
+        assertEquals("newuser", response.getBody().getUsername());
+        assertEquals(1L, response.getBody().getRoleId());
     }
 
     // --- AuthController Tests ---
@@ -403,7 +534,7 @@ public class ControllerTest {
         createDTO.setTitle("Simple Ticket");
         createDTO.setCreatedById(1L);
 
-        Ticket mockTicket = mock(Ticket.class); // Mock zamiast new Ticket()
+        Ticket mockTicket = mock(Ticket.class);
         User creator = new User();
         creator.setId(1L);
 
