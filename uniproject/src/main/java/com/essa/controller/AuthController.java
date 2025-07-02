@@ -45,13 +45,13 @@ public class AuthController {
     }
 
     @Data
-    static class AuthRequest {
+    public static class AuthRequest {
         private String username;
         private String password;
     }
 
     @Data
-    static class AuthResponse {
+    public static class AuthResponse {
         private final String token;
     }
 }

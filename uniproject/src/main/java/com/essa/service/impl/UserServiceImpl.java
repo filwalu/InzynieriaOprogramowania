@@ -3,20 +3,29 @@ package com.essa.service.impl;
 import com.essa.model.User;
 import com.essa.repository.UserRepository;
 import com.essa.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.essa.util.decorator.UserWithStatsDecorator;
+import com.essa.util.observer.UserLoggingObserver;
+import com.essa.util.observer.UserSubject;
+import com.essa.util.command.*;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 @Service
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final UserSubject userSubject;
+    private final UserCommandInvoker commandInvoker = new UserCommandInvoker();
 
-    @Autowired
     public UserServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
+
+        this.userSubject = new UserSubject();
+        this.userSubject.addObserver(new UserLoggingObserver()); // Observer for logging
     }
 
     @Override
@@ -47,7 +56,16 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("User already exists with email: " + user.getEmail());
         }
         
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        
+        if (savedUser.getId() != null) {
+            userSubject.notifyUserCreated(savedUser.getId(), savedUser.getUsername());
+            deactivateUserWithCommand(savedUser.getId()); // Deactivate for showing purpose
+            activateUserWithCommand(savedUser.getId()); // Activate user after creation for showing purpose
+        }
+       
+        return savedUser;
     }
 
     @Override
@@ -73,7 +91,11 @@ public class UserServiceImpl implements UserService {
                     });
         }
         
-        return userRepository.save(user);
+        User updatedUser = userRepository.save(user);
+        
+        userSubject.notifyUserUpdated(updatedUser.getId(), updatedUser.getUsername());
+    
+        return updatedUser;
     }
 
     @Override
@@ -92,5 +114,30 @@ public class UserServiceImpl implements UserService {
         
         return user.getRole().getRolePermissions().stream()
                 .anyMatch(rp -> rp.getPermission().equals(permissionName));
+    }
+    
+    public String getUserWithStats(Long userId) {
+        User user = findById(userId);
+        //Mocking due circular dependency with TicketService
+        int createdTickets = Math.abs(user.getUsername().hashCode() % 10); // Deterministic mock value
+        int assignedTickets = Math.abs(user.getEmail().hashCode() % 5); // Deterministic mock value
+        
+        UserWithStatsDecorator decorator = new UserWithStatsDecorator(user, createdTickets, assignedTickets);
+        String info = decorator.getDisplayInfo();
+        
+        Logger.getLogger(UserServiceImpl.class.getName()).info("DECORATOR: " + info);
+        return info;
+    }
+
+    public void activateUserWithCommand(Long userId) {
+        User user = findById(userId);
+        UserCommand command = new ActivateUserCommand(user);
+        commandInvoker.executeCommand(command);
+    }
+
+    public void deactivateUserWithCommand(Long userId) {
+        User user = findById(userId);
+        UserCommand command = new DeactivateUserCommand(user);
+        commandInvoker.executeCommand(command);
     }
 }

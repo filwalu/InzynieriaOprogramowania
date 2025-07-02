@@ -1,0 +1,10 @@
+services:
+  frontend:
+    container_name: ticketing-system-frontend
+    image: ticketing-system-frontend:latest
+    ports:
+      - 9988:80
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+    - VITE_API_URL=http://localhost:8099/api

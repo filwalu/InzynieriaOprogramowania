@@ -5,7 +5,6 @@ import com.essa.model.User;
 import com.essa.repository.RoleRepository;
 import com.essa.repository.UserRepository;
 import org.flywaydb.core.Flyway;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +22,6 @@ public class FlywayConfig {
 
     private final DataSource dataSource;
 
-    @Autowired
     public FlywayConfig(DataSource dataSource) {
         this.dataSource = dataSource;
     }
@@ -43,7 +41,6 @@ public class FlywayConfig {
         private final RoleRepository roleRepository;
         private final PasswordEncoder passwordEncoder;
 
-        @Autowired
         public AdminInitializer(UserRepository userRepository, RoleRepository roleRepository, 
                           PasswordEncoder passwordEncoder) {
             this.userRepository = userRepository;
